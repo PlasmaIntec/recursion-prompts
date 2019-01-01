@@ -215,13 +215,32 @@ var countOccurrence = function(array, value) {
 // 21. Write a recursive version of map.
 // rMap([1,2,3], timesTwo); // [2,4,6]
 var rMap = function(array, callback) {
+	if (array.length > 0) return [].concat(callback(array[0])).concat(rMap(array.slice(1), callback));
+	return [];
 };
+
+var cut = function (obj, x) {
+  var keys = Object.keys(obj).slice(x);
+  var ret = {};
+  for (var i in keys) {
+      ret[keys[i]] = obj[keys[i]];
+  }
+  return ret;
+}	
 
 // 22. Write a function that counts the number of times a key occurs in an object.
 // var obj = {'e':{'x':'y'},'t':{'r':{'e':'r'},'p':{'y':'r'}},'y':'e'};
 // countKeysInObj(obj, 'r') // 1
 // countKeysInObj(obj, 'e') // 2
 var countKeysInObj = function(obj, key) {
+	if (obj === undefined || Object.keys(obj).length === 0) return 0;
+	if (Object.keys(obj)[0] === key && typeof obj[Object.keys(obj)[0]] === 'object') 
+		return 1 + countKeysInObj(obj[Object.keys(obj)[0]], key) + countKeysInObj(cut(obj, 1), key);
+	if (Object.keys(obj)[0] === key) 
+		return 1 + countKeysInObj(cut(obj, 1), key);
+	if (typeof obj[Object.keys(obj)[0]] === 'object') 
+		return countKeysInObj(obj[Object.keys(obj)[0]], key) + countKeysInObj(cut(obj, 1), key);
+	return countKeysInObj(cut(obj, 1), key);
 };
 
 // 23. Write a function that counts the number of times a value occurs in an object.
@@ -229,11 +248,55 @@ var countKeysInObj = function(obj, key) {
 // countValuesInObj(obj, 'r') // 2
 // countValuesInObj(obj, 'e') // 1
 var countValuesInObj = function(obj, value) {
+	if (obj === undefined || Object.keys(obj).length === 0) return 0;
+	if (typeof obj[Object.keys(obj)[0]] === 'object') 
+		return countValuesInObj(obj[Object.keys(obj)[0]], value) + countValuesInObj(cut(obj, 1), value);
+	if (obj[Object.keys(obj)[0]] === value) 
+		return 1 + countValuesInObj(cut(obj, 1), value);
+	return countValuesInObj(cut(obj, 1), value);
 };
+
+var replaceKey = function (o, old_key, new_key) {
+	if (old_key !== new_key) {
+	    Object.defineProperty(o, new_key,
+	        Object.getOwnPropertyDescriptor(o, old_key));
+	    delete o[old_key];
+	}
+}
+
+var toObject = function (array) {
+    let arr = {};
+    arr[array[0]] = array[1];
+    return arr;
+}
 
 // 24. Find all keys in an object (and nested objects) by a provided name and rename
 // them to a provided new name while preserving the value stored at that key.
 var replaceKeysInObj = function(obj, oldKey, newKey) {
+	let temp, more;
+	if (obj === undefined || Object.keys(obj).length === 0) return obj;
+	if (Object.keys(obj)[0] === oldKey && typeof obj[Object.keys(obj)[0]] === 'object') {
+		temp = toObject(Object.entries(obj)[0]);
+		more = replaceKeysInObj(cut(obj, 1), oldKey, newKey);
+		replaceKey(temp, oldKey, newKey);
+		temp[newKey] = replaceKeysInObj(temp[Object.keys(temp)[0]], oldKey, newKey);
+		return Object.assign(temp, more);
+	}
+	if (Object.keys(obj)[0] === oldKey) {
+		temp = toObject(Object.entries(obj)[0]);
+		more = replaceKeysInObj(cut(obj, 1), oldKey, newKey);
+		replaceKey(temp, oldKey, newKey);
+		return Object.assign(temp, more);
+	}	
+	if (typeof obj[Object.keys(obj)[0]] === 'object') {
+		temp = toObject(Object.entries(obj)[0]);
+		more = replaceKeysInObj(cut(obj, 1), oldKey, newKey);
+		temp[Object.keys(temp)[0]] = replaceKeysInObj(temp[Object.keys(temp)[0]], oldKey, newKey);
+		return Object.assign(temp, more);
+	}
+	temp = toObject(Object.entries(obj)[0]);
+	more = replaceKeysInObj(cut(obj, 1), oldKey, newKey);
+	return Object.assign(temp, more);
 };
 
 // 25. Get the first n Fibonacci numbers. In the Fibonacci sequence, each subsequent
@@ -242,6 +305,11 @@ var replaceKeysInObj = function(obj, oldKey, newKey) {
 // fibonacci(5); // [0,1,1,2,3,5]
 // Note: The 0 is not counted.
 var fibonacci = function(n) {
+	if (n <= 0) return null;
+	if (n === 1) return [0,1];
+	let last = fibonacci(n-1);
+	let curr = last[last.length-1]+last[last.length-2];
+	return [].concat(fibonacci(n-1), curr);
 };
 
 // 26. Return the Fibonacci number located at index n of the Fibonacci sequence.
@@ -250,17 +318,37 @@ var fibonacci = function(n) {
 // nthFibo(7); // 13
 // nthFibo(3); // 2
 var nthFibo = function(n) {
+	if (n < 0) return null;
+	if (n === 0) return 0;
+	if (n === 1) return 1;
+	return nthFibo(n-1)+nthFibo(n-2);
+};
+
+String.prototype.allCap = function() {
+    let str = '';
+    for (let i = 0; i < this.length; i++) {
+    	str += this[i].toUpperCase();
+    }
+    return str;
+};
+
+String.prototype.properCap = function() {
+    return this.replace(/(?:^|\s)\S/g, function(a) { return a.toUpperCase(); });
 };
 
 // 27. Given an array of words, return a new array containing each word capitalized.
 // var words = ['i', 'am', 'learning', 'recursion'];
 // capitalizedWords(words); // ['I', 'AM', 'LEARNING', 'RECURSION']
 var capitalizeWords = function(array) {
+	if (array.length === 0) return array;
+	return [].concat(array[0].allCap(), capitalizeWords(array.slice(1)));
 };
 
 // 28. Given an array of strings, capitalize the first letter of each index.
 // capitalizeFirst(['car','poop','banana']); // ['Car','Poop','Banana']
 var capitalizeFirst = function(array) {
+	if (array.length === 0) return array;
+	return [].concat(array[0].properCap(), capitalizeFirst(array.slice(1)));
 };
 
 // 29. Return the sum of all even numbers in an object containing nested objects.
@@ -273,17 +361,40 @@ var capitalizeFirst = function(array) {
 // };
 // nestedEvenSum(obj1); // 10
 var nestedEvenSum = function(obj) {
+	if (Object.keys(obj).length === 0) return 0;
+	if (typeof obj[Object.keys(obj)[0]] === 'object') return nestedEvenSum(obj[Object.keys(obj)[0]]) + nestedEvenSum(cut(obj, 1));
+	if (obj[Object.keys(obj)[0]] % 2 === 0) return obj[Object.keys(obj)[0]] + nestedEvenSum(cut(obj, 1));
+	return nestedEvenSum(cut(obj, 1));
 };
 
 // 30. Flatten an array containing nested arrays.
 // flatten([1,[2],[3,[[4]]],5]); // [1,2,3,4,5]
 var flatten = function(array) {
+	if (array.length === 0) return [];
+	if (Array.isArray(array[0])) return [].concat(flatten(array[0]), flatten(array.slice(1)));
+	return [].concat(array[0], flatten(array.slice(1)));
 };
 
 // 31. Given a string, return an object containing tallies of each letter.
 // letterTally('potato'); // {p:1, o:2, t:2, a:1}
 var letterTally = function(str, obj) {
+	if (str.length === 0) return obj;
+	if (obj === undefined) obj = {};
+	if (obj[str[0]] === undefined) {
+		obj[str[0]] = 1;
+		return letterTally(str.slice(1), obj);
+	}
+	obj[str[0]]++;
+	return letterTally(str.slice(1), obj);
 };
+
+var stillSame = function (list, start) {
+	let i = start;
+	while (list[i] === list[start] && i < list.length) {
+		i++;
+	}
+	return i;
+}
 
 // 32. Eliminate consecutive duplicates in a list. If the list contains repeated
 // elements they should be replaced with a single copy of the element. The order of the
@@ -291,52 +402,144 @@ var letterTally = function(str, obj) {
 // compress([1,2,2,3,4,4,5,5,5]) // [1,2,3,4,5]
 // compress([1,2,2,3,4,4,2,5,5,5,4,4]) // [1,2,3,4,2,5,4]
 var compress = function(list) {
+	if (list.length === 0) return [];
+	for (let i = 0; i < list.length-1; i++) {
+		if (list[i] === list[i+1]) {
+			let prev = list.slice(0, i+1);
+			let next = compress(list.slice(stillSame(list, i)));
+			return [].concat(prev, next);
+		}
+	}
+	return list;
 };
 
 // 33. Augument every element in a list with a new value where each element is an array
 // itself.
 // augmentElements([[],[3],[7]], 5); // [[5],[3,5],[7,5]]
 var augmentElements = function(array, aug) {
+	if (array.length === 0) return [];
+	let head = array[0];
+	head.push(aug);
+	return [].concat([head], augmentElements(array.slice(1), aug));
 };
 
 // 34. Reduce a series of zeroes to a single 0.
 // minimizeZeroes([2,0,0,0,1,4]) // [2,0,1,4]
 // minimizeZeroes([2,0,0,0,1,0,0,4]) // [2,0,1,0,4]
 var minimizeZeroes = function(array) {
+	if (array.length === 0) return [];
+	for (let i = 0; i < array.length-1; i++) {
+		if (array[i] === 0) {
+			let prev = array.slice(0, i+1);
+			let next = minimizeZeroes(array.slice(stillSame(array, i)));
+			return [].concat(prev, next);
+		}
+	}
+	return array;
 };
+
+var negAlternateSign;
 
 // 35. Alternate the numbers in an array between positive and negative regardless of
 // their original sign. The first number in the index always needs to be positive.
 // alternateSign([2,7,8,3,1,4]) // [2,-7,8,-3,1,-4]
 // alternateSign([-2,-7,8,3,-1,4]) // [2,-7,8,-3,1,-4]
 var alternateSign = function(array) {
+	if (array.length === 0) return [];
+	return [].concat(Math.abs(array[0]), negAlternateSign(array.slice(1)));
 };
+
+negAlternateSign = function(array) {
+	if (array.length === 0) return [];
+	return [].concat(-1*Math.abs(array[0]), alternateSign(array.slice(1)));	
+}
+
+var numConvert = {0: 'zero',
+									1: 'one',
+									2: 'two',
+									3: 'three',
+									4: 'four',
+									5: 'five',
+									6: 'six',
+									7: 'seven',
+									8: 'eight',
+									9: 'nine'};
 
 // 36. Given a string, return a string with digits converted to their word equivalent.
 // Assume all numbers are single digits (less than 10).
 // numToText("I have 5 dogs and 6 ponies"); // "I have five dogs and six ponies"
 var numToText = function(str) {
+	if (str.length === 0) return '';
+	if (str[0] in Object.keys(numConvert)) return numConvert[str[0]] + numToText(str.slice(1));
+	return str[0] + numToText(str.slice(1));
 };
 
 
 // *** EXTRA CREDIT ***
 
 // 37. Return the number of times a tag occurs in the DOM.
-var tagCount = function(tag, node) {
+var tagCount = function(tag, node=document) {
+	if (node.childNodes.length === 0) return (node.tagName === tag.toUpperCase() ? 1 : 0);
+	let temp = 0;
+	for (let i = 0; i < node.childNodes.length; i++) {
+		if (node.childNodes[i].tagName === tag.toUpperCase()) { 
+			temp += 1 + tagCount(tag, node.childNodes[i]);
+		} else {
+			temp += tagCount(tag, node.childNodes[i]);
+		}
+	}
+	return temp;
 };
 
 // 38. Write a function for binary search.
 // var array = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15];
 // binarySearch(array, 5) // 5
 // https://www.khanacademy.org/computing/computer-science/algorithms/binary-search/a/binary-search
-var binarySearch = function(array, target, min, max) {
+var binarySearch = function(array, target, min=0, max=array.length-1) {
+	let mid = min + ~~((max-min)/2);
+	if (min > max) return null;
+	if (min === max && array[mid] !== target) return null;
+	if (array[mid] === target) return mid;
+	if (array[mid] < target) return binarySearch(array, target, mid+1, max); // target on right half
+	if (array[mid] > target) return binarySearch(array, target, min, mid); // target on left half
 };
 
 // 39. Write a merge sort function.
 // mergeSort([34,7,23,32,5,62]) // [5,7,23,32,34,62]
 // https://www.khanacademy.org/computing/computer-science/algorithms/merge-sort/a/divide-and-conquer-algorithms
 var mergeSort = function(array) {
+	if (array.length <= 1) return array;
+	if (array.length > 1) {
+		var mid = ~~(array.length/2);
+		var left = mergeSort(array.slice(0, mid));
+		var right = mergeSort(array.slice(mid));
+		var temp = [], i = 0, j = 0;
+		do {
+			if (i >= left.length) {
+				temp.push(right[j++]);
+				continue;
+			}
+			if (j >= right.length) {
+				temp.push(left[i++]);
+				continue;
+			}
+			if (left[i] <= right[j]) temp.push(left[i++]);
+			if (left[i] > right[j]) temp.push(right[j++]);			
+		} while (temp.length < array.length); 
+		return temp;
+	}
 };
+
+var stitch = function (obj1, obj2) {
+    var obj = {};
+    for (e in obj1) {
+        obj[e] = obj1[e];
+    }
+    for (e in obj2) {
+        obj[e] = obj2[e];
+    }
+    return obj;
+}
 
 // 40. Deeply clone objects and arrays.
 // var obj1 = {a:1,b:{bb:{bbb:2}},c:3};
@@ -344,4 +547,24 @@ var mergeSort = function(array) {
 // console.log(obj2); // {a:1,b:{bb:{bbb:2}},c:3}
 // obj1 === obj2 // false
 var clone = function(input) {
+	if (Array.isArray(input)) {
+		if (input.length === 0) return input;
+		if (Array.isArray(input[0])) return [].concat([clone(input[0])], clone(input.slice(1)));
+		if (typeof input[0] === 'object') return [].concat(clone(input[0]), clone(input.slice(1)));
+		return [].concat(input[0], clone(input.slice(1)));
+	}
+	if (typeof input === 'object') {
+		let keys = Object.keys(input);
+		let first = input[keys[0]];
+		if (keys.length === 0) return input;
+		let prev = {}, more;
+		if (Array.isArray(first) || typeof first === 'object') {
+			prev[keys[0]] = clone(first);
+			more = clone(cut(input, 1));
+			return stitch(prev, more);
+		}
+		prev[keys[0]] = first;
+		more = clone(cut(input, 1));
+		return stitch(prev, more);
+	}
 };
